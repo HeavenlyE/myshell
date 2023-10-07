@@ -3,16 +3,21 @@
 #include<stdlib.h>
 #include<unistd.h>
 #include<sys/wait.h>
+#include<errno.h>
 
 
+//removes the last char from the end of a string
+//mainly used to remove '\n' from the end of the last token
 void removeLastChar(char *token){
     token[strlen(token) - 1] = '\0';
 }
 
+//used for "start" and "run" commands
 void startProcess(char **token, int *pid){
     *pid = fork();
     if (*pid < 0){
-        //err
+        printf("myshell: error starting program: %s\n",token[0]);
+        exit(1);
     }
     if(*pid == 0){
         // printf("Child process: ");
@@ -25,33 +30,31 @@ void startProcess(char **token, int *pid){
 }
 
 
-
 int main(){
 
     char prompt[] = "myshell> ";
-    //char input[4];
     char input[4096];
     char *token[99];
     char *command;
     char separator[] = " \t";
     int i;
-    int *pid;
-    *pid = 0;
-    int *exitStat;
+    int pid = 0;
+    int exitStat = 0;
+    int errCheck;
 
     while(0 == 0){
+
+        //prints the prompt and reads user input
         printf("%s", prompt);
         fgets(input, sizeof(input), stdin);
         command = strtok(input, separator);
         token[0] = strtok(NULL, separator);
-        //printf("%s\n", token[0]);
         int j = 0;
 
-        //separate the different arguments
-        while(token[j] != NULL){
+        //separate the rest of the arguments
+        while(token[j] != NULL && j<99){
             j++;
             token[j] = strtok(NULL, separator);
-            //printf("token[%d] %s\n", j, token[j]);
         }
 
         //remove the newline from the end of the last token
@@ -60,7 +63,6 @@ int main(){
         }else{
             removeLastChar(token[j-1]);
         }
-        //printf("%s this should be on same line\n",token[j-1]);
 
         // Print out the tokens
         //printf("Command: %s\n", command);
@@ -70,21 +72,27 @@ int main(){
         // }
         // printf("\n");
 
-
+        //running the different commands
         if(strcmp(command, "quit") == 0 || strcmp(command, "exit") == 0){
             exit(0);
         }
         else if(strcmp(command, "start") == 0){
-            startProcess(token, pid);
+            startProcess(token, &pid);
         }
         else if(strcmp(command, "run") == 0){
-            startProcess(token, pid);
-            // printf("Waiting for %d...\n",*pid);
-            waitpid(*pid,exitStat,0);
-            printf("Done waiting...\n");
+            startProcess(token, &pid);
+
+            errCheck = waitpid(pid,&exitStat,0);
+            if(errCheck < 0){
+                printf("myshell: error: %s\n",strerror(errno));
+            }
+
         }
         else if(strcmp(command, "wait") == 0){
-            wait(exitStat);
+            errCheck = wait(&exitStat);
+            if(errCheck < 0){
+                printf("myshell: error: %s\n",strerror(errno));
+            }
         }
         else if(strcmp(command, "kill") == 0){
 
