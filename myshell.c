@@ -16,14 +16,13 @@ void removeLastChar(char *token){
 void startProcess(char **token, int *pid){
     *pid = fork();
     if (*pid < 0){
-        printf("myshell: error starting program: %s\n",token[0]);
+        printf("myshell: error starting program: %s\n", token[0]);
         exit(1);
     }
     if(*pid == 0){
         // printf("Child process: ");
         // printf("running %s\n", token[0]);
         execvp(token[0], token);
-        //execvp("ls",token);
         exit(0);
     }
 
@@ -33,6 +32,8 @@ void startProcess(char **token, int *pid){
 int main(){
 
     char prompt[] = "myshell> ";
+    char exitNorm[] = "myshell: process %d exited normally with status %d\n";
+    char exitErr[] = "myshell: process %d exited abnormally with status %d\n";
     char input[4096];
     char *token[99];
     char *command;
@@ -82,16 +83,24 @@ int main(){
         else if(strcmp(command, "run") == 0){
             startProcess(token, &pid);
 
-            errCheck = waitpid(pid,&exitStat,0);
+            errCheck = waitpid(pid, &exitStat, 0);
             if(errCheck < 0){
-                printf("myshell: error: %s\n",strerror(errno));
+                printf("myshell: error: %s\n", strerror(errno));
+            }else if(exitStat == 0){
+                printf(exitNorm, errCheck, exitStat);
+            }else{
+                printf(exitErr, errCheck, exitStat);
             }
 
         }
         else if(strcmp(command, "wait") == 0){
             errCheck = wait(&exitStat);
             if(errCheck < 0){
-                printf("myshell: error: %s\n",strerror(errno));
+                printf("myshell: error: %s\n", strerror(errno));
+            }else if(exitStat == 0){
+                printf(exitNorm, errCheck, exitStat);
+            }else{
+                printf(exitErr, errCheck, exitStat);
             }
         }
         else if(strcmp(command, "kill") == 0){
