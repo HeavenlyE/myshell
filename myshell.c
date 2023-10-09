@@ -22,7 +22,11 @@ void sendSignal(int pid, int signal){
         printf("myshells: error: %s\n", strerror(errno));
     }else{
         if(signal == SIGKILL)
-            printf("myshells: process %d killed\n", pid);
+            printf("myshell: process %d killed\n", pid);
+        if(signal == SIGSTOP)
+            printf("myshell: process %d stopped \n", pid);
+        if(signal == SIGCONT)
+            printf("myshell: process %d continued \n", pid);
     }
 }
 
@@ -31,7 +35,7 @@ void sendSignal(int pid, int signal){
 void startProcess(char **token, int *pid){
     int errCheck;
     *pid = fork();
-    if (*pid < 0){
+    if(*pid < 0){
         printf("myshell: error starting program: %s\n", token[0]);
         printf("terminating process...\n");
         exit(1);
@@ -40,7 +44,7 @@ void startProcess(char **token, int *pid){
         // printf("Child process: ");
         // printf("running %s\n", token[0]);
         errCheck = execvp(token[0], token);
-        if (errCheck < 0){
+        if(errCheck < 0){
             printf("myshell: error: %s\n", strerror(errno));
             exit(1);
         }
@@ -126,16 +130,28 @@ int main(){
         }
         else if(strcmp(command, "kill") == 0){
             pid = atoi(token[0]);
-            if (pid == 0){
-                printf("myshell: invalid process ID: %s",token[0]);
+            if(pid == 0){
+                printf("myshell: invalid process ID: %s\n",token[0]);
             }else{
                 sendSignal(pid, SIGKILL);
             }
         }
         else if(strcmp(command, "stop") == 0){
+            pid = atoi(token[0]);
+            if(pid == 0){
+                printf("myshell: invalid process ID: %s\n",token[0]);
+            }else{
+                sendSignal(pid, SIGSTOP);
+            }
             
         }
         else if(strcmp(command, "continue") == 0){
+            pid = atoi(token[0]);
+            if(pid == 0){
+                printf("myshell: invalid process ID: %s\n",token[0]);
+            }else{
+                sendSignal(pid, SIGCONT);
+            }
             
         }
         else if(strcmp(command, "") == 0){
