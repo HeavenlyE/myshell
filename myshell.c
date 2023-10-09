@@ -4,6 +4,7 @@
 #include<unistd.h>
 #include<sys/wait.h>
 #include<errno.h>
+#include<signal.h>
 
 
 //removes the last char from the end of a string
@@ -12,17 +13,37 @@ void removeLastChar(char *token){
     token[strlen(token) - 1] = '\0';
 }
 
+
+//sends signals and handles errors caused by this
+void sendSignal(int pid, int signal){
+    int errCheck;
+    errCheck = kill(pid, signal);
+    if(errCheck < 0){
+        printf("myshells: error: %s\n", strerror(errno));
+    }else{
+        if(signal == SIGKILL)
+            printf("myshells: process %d killed\n", pid);
+    }
+}
+
 //used for "start" and "run" commands
+//starts the process being passed and handles any errors
 void startProcess(char **token, int *pid){
+    int errCheck;
     *pid = fork();
     if (*pid < 0){
         printf("myshell: error starting program: %s\n", token[0]);
+        printf("terminating process...\n");
         exit(1);
     }
     if(*pid == 0){
         // printf("Child process: ");
         // printf("running %s\n", token[0]);
-        execvp(token[0], token);
+        errCheck = execvp(token[0], token);
+        if (errCheck < 0){
+            printf("myshell: error: %s\n", strerror(errno));
+            exit(1);
+        }
         exit(0);
     }
 
@@ -104,7 +125,12 @@ int main(){
             }
         }
         else if(strcmp(command, "kill") == 0){
-
+            pid = atoi(token[0]);
+            if (pid == 0){
+                printf("myshell: invalid process ID: %s",token[0]);
+            }else{
+                sendSignal(pid, SIGKILL);
+            }
         }
         else if(strcmp(command, "stop") == 0){
             
